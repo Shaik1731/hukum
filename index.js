@@ -5,4 +5,5 @@ for (let i=1; i<arr.length;  i++){
     }else if(arr[i]%2==1){
         console.log("odd");
     }
-}
+    
+}  

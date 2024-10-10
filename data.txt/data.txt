@@ -1,1 +1,6 @@
-console.log("ravi")
+let arr =[3,5,7,4,66,55,45]
+for (let i=3; i<arr.length; i++){
+    if(arr[i]%2==1){
+        console.log("odd")
+    }
+}
