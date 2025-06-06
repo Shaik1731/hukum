@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Search Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    #search-box {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+    }
+    #results {
+      margin-top: 20px;
+    }
+    .name {
+      padding: 5px;
+    }
+    .highlight {
+      background-color: yellow;
+    }
+    #back-to-top {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: none;
+      padding: 10px 15px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #stats {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    #loader {
+      margin-top: 10px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <h1>Search Dashboard</h1>
+  <input type="text" id="search-box" placeholder="Search names..." />
+  <div id="loader"></div>
+  <div id="results"></div>
+  <div id="stats">
+    Keystrokes: <span id="keystrokes">0</span> |
+    Debounced Searches: <span id="debounced">0</span>
+  </div>
+  <button id="back-to-top">↑ Top</button>
+
+  <script>
+   
+    const names = [];
+    for (let i = 1; i <= 200; i++) {
+      names.push("Name" + i);
+    }
+
+    const searchBox = document.getElementById("search-box");
+    const resultsDiv = document.getElementById("results");
+    const keystrokeCount = document.getElementById("keystrokes");
+    const debounceCount = document.getElementById("debounced");
+    const loader = document.getElementById("loader");
+    const backToTop = document.getElementById("back-to-top");
+
+    let keystrokes = 0;
+    let debouncedSearches = 0;
+    let debounceTimer;
+
+    function highlightMatch(name, term) {
+      const regex = new RegExp(`(${term})`, "gi");
+      return name.replace(regex, "<span class='highlight'>$1</span>");
+    }
+
+    function searchNames(term) {
+      if (!term) {
+        resultsDiv.innerHTML = "";
+        loader.textContent = "";
+        return;
+      }
+
+      const matches = names.filter(n => n.toLowerCase().includes(term.toLowerCase()));
+      resultsDiv.innerHTML = matches.length
+        ? matches.map(n => `<div class="name">${highlightMatch(n, term)}</div>`).join("")
+        : `<div>No results found.</div>`;
+
+      loader.textContent = "";
+    }
+
+    function debounceSearch(term) {
+      loader.textContent = "Searching...";
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debouncedSearches++;
+        debounceCount.textContent = debouncedSearches;
+        searchNames(term);
+      }, 1000);
+    }
+
+    searchBox.addEventListener("input", (e) => {
+      const term = e.target.value;
+      keystrokes++;
+      keystrokeCount.textContent = keystrokes;
+      debounceSearch(term);
+    });
+
+    
+    function throttle(fn, limit) {
+      let lastCall = 0;
+      return function () {
+        const now = new Date().getTime();
+        if (now - lastCall >= limit) {
+          lastCall = now;
+          fn();
+        }
+      };
+    }
+
+    window.addEventListener("scroll", throttle(() => {
+      if (window.scrollY > 200) {
+        backToTop.style.display = "block";
+      } else {
+        backToTop.style.display = "none";
+      }
+    }, 500));
+
+    backToTop.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  </script>
+</body>
+</html>
