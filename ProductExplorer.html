@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Product Explorer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 20px;
+      background: #f7f7f7;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    select, input {
+      padding: 5px;
+      margin: 5px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    .product {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .product img {
+      max-width: 100%;
+      height: 150px;
+      object-fit: contain;
+    }
+    .product-title {
+      font-size: 14px;
+      margin: 10px 0;
+    }
+    .product-price {
+      color: green;
+      font-weight: bold;
+    }
+    .pagination {
+      margin: 20px 0;
+      text-align: center;
+    }
+    .pagination button {
+      padding: 8px 12px;
+      margin: 0 5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <select id="sort">
+        <option value="">Sort By</option>
+        <option value="price-asc">Price: Low to High</option>
+        <option value="price-desc">Price: High to Low</option>
+        <option value="title-asc">Title A-Z</option>
+      </select>
+      <select id="filter"></select>
+    </div>
+    <input type="text" id="search" placeholder="Search products..." />
+  </header>
+
+  <main class="grid" id="productGrid"></main>
+
+  <div class="pagination">
+    <button id="prevBtn">Previous</button>
+    <span id="pageNum">1</span>
+    <button id="nextBtn">Next</button>
+  </div>
+
+  <script>
+    const API_URL = 'https://fakestoreapi.com/products';
+    const productGrid = document.getElementById('productGrid');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageNum = document.getElementById('pageNum');
+    const sortSelect = document.getElementById('sort');
+    const filterSelect = document.getElementById('filter');
+    const searchInput = document.getElementById('search');
+
+    const PAGE_SIZE = 8;
+    let allProducts = [];
+    let filteredProducts = [];
+    let currentPage = 1;
+    let debounceTimeout = null;
+
+    function getURLParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return {
+        page: parseInt(urlParams.get('page')) || 1,
+        sort: urlParams.get('sort') || '',
+        category: urlParams.get('category') || '',
+        search: urlParams.get('search') || '',
+      };
+    }
+
+    function setURLParams(params) {
+      const url = new URL(window.location);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) url.searchParams.set(key, value);
+        else url.searchParams.delete(key);
+      });
+      history.pushState({}, '', url);
+    }
+
+    async function fetchProducts() {
+      const res = await fetch(API_URL);
+      allProducts = await res.json();
+      populateCategories();
+      applyFilters();
+    }
+
+    function populateCategories() {
+      const categories = [...new Set(allProducts.map(p => p.category))];
+      filterSelect.innerHTML = `<option value="">All Categories</option>` +
+        categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function applyFilters() {
+      const { category, search, sort, page } = getURLParams();
+      currentPage = page;
+      pageNum.textContent = currentPage;
+
+      filteredProducts = allProducts.filter(p => {
+        return (!category || p.category === category) &&
+               (!search || p.title.toLowerCase().includes(search.toLowerCase()));
+      });
+
+      if (sort === 'price-asc') filteredProducts.sort((a, b) => a.price - b.price);
+      else if (sort === 'price-desc') filteredProducts.sort((a, b) => b.price - a.price);
+      else if (sort === 'title-asc') filteredProducts.sort((a, b) => a.title.localeCompare(b.title));
+
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+      const paginated = filteredProducts.slice(start, end);
+
+      productGrid.innerHTML = paginated.map(p => `
+        <div class="product">
+          <img src="${p.image}" alt="${p.title}" />
+          <div class="product-title">${p.title}</div>
+          <div class="product-price">$${p.price}</div>
+          <div class="product-category">${p.category}</div>
+        </div>
+      `).join('');
+
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = end >= filteredProducts.length;
+    }
+
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        setURLParams({ ...getURLParams(), page: currentPage });
+        applyFilters();
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if ((currentPage * PAGE_SIZE) < filteredProducts.length) {
+        currentPage++;
+        setURLParams({ ...getURLParams(), page: currentPage });
+        applyFilters();
+      }
+    });
+
+    sortSelect.addEventListener('change', () => {
+      setURLParams({ ...getURLParams(), sort: sortSelect.value, page: 1 });
+      applyFilters();
+    });
+
+    filterSelect.addEventListener('change', () => {
+      setURLParams({ ...getURLParams(), category: filterSelect.value, page: 1 });
+      applyFilters();
+    });
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => {
+        setURLParams({ ...getURLParams(), search: searchInput.value.trim(), page: 1 });
+        applyFilters();
+      }, 1000);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const { sort, category, search } = getURLParams();
+      sortSelect.value = sort;
+      searchInput.value = search;
+      fetchProducts().then(() => {
+        filterSelect.value = category;
+      });
+    });
+  </script>
+</body>
+</html>
