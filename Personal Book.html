@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Book Tracker App</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; }
+    h2 { text-align: center; }
+    input, button, select { width: 100%; padding: 10px; margin: 8px 0; }
+    ul { list-style: none; padding: 0; }
+    li { background: #e2e2e2; padding: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .read { text-decoration: line-through; color: green; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="auth-section">
+      <h2>Book Tracker - Login</h2>
+      <input type="email" id="email" placeholder="Email">
+      <input type="password" id="password" placeholder="Password">
+      <button onclick="login()">Login</button>
+      <button onclick="signup()">Sign Up</button>
+    </div>
+
+    <div id="book-section" class="hidden">
+      <h2>Your Book List</h2>
+      <button onclick="logout()">Logout</button>
+      <form onsubmit="addBook(event)">
+        <input type="text" id="title" placeholder="Book Title" required>
+        <input type="text" id="author" placeholder="Author" required>
+        <button type="submit">Add Book</button>
+      </form>
+      <select id="filter" onchange="renderBooks()">
+        <option value="all">All</option>
+        <option value="read">Read</option>
+        <option value="unread">Unread</option>
+      </select>
+      <p id="stats"></p>
+      <ul id="book-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    let currentUser = null;
+    let books = [];
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        document.getElementById('auth-section').classList.add('hidden');
+        document.getElementById('book-section').classList.remove('hidden');
+        fetchBooks();
+      } else {
+        document.getElementById('auth-section').classList.remove('hidden');
+        document.getElementById('book-section').classList.add('hidden');
+        currentUser = null;
+      }
+    });
+
+    function signup() {
+      const email = emailEl.value;
+      const password = passwordEl.value;
+      auth.createUserWithEmailAndPassword(email, password).catch(alert);
+    }
+
+    function login() {
+      const email = emailEl.value;
+      const password = passwordEl.value;
+      auth.signInWithEmailAndPassword(email, password).catch(alert);
+    }
+
+    function logout() {
+      auth.signOut();
+    }
+
+    async function addBook(e) {
+      e.preventDefault();
+      const title = titleEl.value;
+      const author = authorEl.value;
+      const newBook = { userId: currentUser.uid, title, author, read: false, id: Date.now() };
+      await fetch('https://jsonplaceholder.typicode.com/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBook)
+      });
+      books.push(newBook);
+      renderBooks();
+      titleEl.value = '';
+      authorEl.value = '';
+    }
+
+    async function fetchBooks() {
+      const res = await fetch('https://jsonplaceholder.typicode.com/posts');
+      const data = await res.json();
+      books = data.filter(b => b.userId === currentUser.uid).map(b => ({ ...b, read: false }));
+      renderBooks();
+    }
+
+    async function toggleRead(id) {
+      const book = books.find(b => b.id === id);
+      book.read = !book.read;
+      await fetch(`https://jsonplaceholder.typicode.com/posts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ read: book.read })
+      });
+      renderBooks();
+    }
+
+    async function removeBook(id) {
+      await fetch(`https://jsonplaceholder.typicode.com/posts/${id}`, { method: 'DELETE' });
+      books = books.filter(b => b.id !== id);
+      renderBooks();
+    }
+
+    function renderBooks() {
+      const list = document.getElementById('book-list');
+      list.innerHTML = '';
+      const filter = document.getElementById('filter').value;
+      const filtered = books.filter(b => {
+        if (filter === 'read') return b.read;
+        if (filter === 'unread') return !b.read;
+        return true;
+      });
+      filtered.forEach(b => {
+        const li = document.createElement('li');
+        li.className = b.read ? 'read' : '';
+        li.innerHTML = `<span>${b.title} - ${b.author}</span>
+        <div>
+          <button onclick="toggleRead(${b.id})">📖</button>
+          <button onclick="removeBook(${b.id})">❌</button>
+        </div>`;
+        list.appendChild(li);
+      });
+      const totalRead = books.filter(b => b.read).length;
+      const totalUnread = books.length - totalRead;
+      stats.innerText = `Read: ${totalRead} | Unread: ${totalUnread}`;
+    }
+
+    const emailEl = document.getElementById('email');
+    const passwordEl = document.getElementById('password');
+    const titleEl = document.getElementById('title');
+    const authorEl = document.getElementById('author');
+    const stats = document.getElementById('stats');
+  </script>
+</body>
+</html>
