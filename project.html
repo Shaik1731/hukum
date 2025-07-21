@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SkillSwap App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: yellow;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .dark-mode {
+      background: black;
+      color: white;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 4px;
+      border: 1px solid;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 10px;
+      background-color:blue;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color:burlywood;
+    }
+
+    .toggle {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .dark-toggle {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>SkillSwap App - Join or Login</h2>
+  
+  <form id="skillForm">
+    <label for="authType">Select Action:</label>
+    <select id="authType">
+      <option value="register">Register</option>
+      <option value="login">Login</option>
+    </select>
+
+    <label for="email">Email:</label>
+    <input type="email" id="email" placeholder="you@example.com" required>
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" placeholder="Enter password" required>
+
+    <div id="additionalFields">
+      <label for="name">Full Name:</label>
+      <input type="text" id="name" placeholder="Your name">
+
+      <label for="skills">Your Skills:</label>
+      <input type="text" id="skills" placeholder="e.g. Graphic Design, Photography">
+
+      <label for="interests">Skills You Want to Learn:</label>
+      <input type="text" id="interests" placeholder="e.g. Coding, Public Speaking">
+
+      <label for="sessionType">Preferred Exchange Method:</label>
+      <select id="sessionType">
+        <option value="virtual">Virtual</option>
+        <option value="in-person">In-Person</option>
+        <option value="either">Either</option>
+      </select>
+
+      <label for="tags">Tags (comma-separated):</label>
+      <input type="text" id="tags" placeholder="e.g. JavaScript, UX Design">
+    </div>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <div class="dark-toggle">
+    <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+  </div>
+</div>
+
+<script>
+  const authTypeSelect = document.getElementById('authType');
+  const additionalFields = document.getElementById('additionalFields');
+  const form = document.getElementById('skillForm');
+
+  authTypeSelect.addEventListener('change', function () {
+    if (this.value === 'login') {
+      additionalFields.style.display = 'none';
+    } else {
+      additionalFields.style.display = 'block';
+    }
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const data = {
+      authType: authTypeSelect.value,
+      email: document.getElementById('email').value,
+      password: document.getElementById('password').value,
+      name: document.getElementById('name').value,
+      skills: document.getElementById('skills').value,
+      interests: document.getElementById('interests').value,
+      sessionType: document.getElementById('sessionType').value,
+      tags: document.getElementById('tags').value,
+    };
+    alert('Form submitted! Check console for data.');
+    console.log(data);
+  });
+
+  function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+  }
+
+ 
+  if (authTypeSelect.value === 'login') {
+    additionalFields.style.display = 'none';
+  }
+</script>
+
+</body>
+</html>
